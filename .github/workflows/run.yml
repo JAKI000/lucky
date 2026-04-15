@@ -1,23 +1,24 @@
-name: HTB Challenge Solver
+name: HTB Speedrun Solve
 
-on: 
-  push:
-  workflow_dispatch: # Bu tugmani bossangiz o'zi ishga tushadi
+on: [push, workflow_dispatch]
 
 jobs:
   exploit:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Run Speedrun Script
-        # Bu yerda TERM=xterm xatolar chiqishining oldini oladi
+      - name: Install dependencies
+        run: pip install pwntools
+
+      - name: Run Exploit
         env:
-          TERM: xterm
+          TERM: linux   # Curses xatosini butunlay yo'qotadi
+          PWNLIB_NOTERM: 1 # Pwntools terminal xususiyatlarini o'chiradi
         run: python3 speedrun.py
