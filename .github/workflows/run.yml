@@ -1,16 +1,16 @@
-name: Dice Arena Speedrun
+name: Luigi Scripting Challenge
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Qo'lda ishga tushirish uchun
+  workflow_dispatch:
 
 jobs:
   exploit:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -18,5 +18,5 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Run Speedrun Script
+      - name: Run Exploit
         run: python speedrun.py
